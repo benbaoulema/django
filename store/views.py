@@ -1,16 +1,22 @@
-from ast import Raise, Try
+from ast import Or
+from lib2to3.pgen2.pgen import DFAState
 from webbrowser import get
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
+#from django.http import HttpResponse
 from rest_framework.decorators import api_view
-from rest_framework.views import APIView
+#from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.mixins import ListModelMixin, CreateModelMixin
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+#from rest_framework.mixins import ListModelMixin, CreateModelMixin
+#from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.viewsets import ModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.pagination import PageNumberPagination
 
 from . models import Product, OrderItem, Review
 from . serialiszer import ProductSerializer, ReviewSerializer
+from .pagination import DefaultPagination
+from .filters import ProductFilter
 from rest_framework import status
 from store import serialiszer
 
@@ -102,8 +108,23 @@ from store import serialiszer
 
 #Product serializer using from rest_framework.viewsets import ModelViewSet
 class ProductViewSet(ModelViewSet):
-    queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    queryset = Product.objects.all()
+    #Use DjangoFilterBackend to filter
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    #uncomment if you want use filterset_fields instead of custom filter class
+    #filterset_fields = ['collection_id']
+    filterset_class = ProductFilter
+    search_fields = ['title', 'description']
+    ordering_fields = ['unit_price', 'last_update']
+    pagination_class = DefaultPagination
+    #uncomment if you wont use DjangoFilterBackend
+    # def get_queryset(self):
+    #     queryset = Product.objects.all()
+    #     collection_id = self.request.query_params.get('collection_id')
+    #     if collection_id is not None:
+    #         queryset = queryset.filter(collection_id=collection_id)
+    #     return queryset
     
     def get_serializer_class(self):
         return ProductSerializer
@@ -117,5 +138,10 @@ class ProductViewSet(ModelViewSet):
         return super().destroy(request, *args, **kwargs)
     
 class ReviewViewSet(ModelViewSet):
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(product_id=self.kwargs['product_pk'])
+
+    def get_serializer_context(self):
+        return {'product_id': self.kwargs['product_pk']}

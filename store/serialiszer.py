@@ -31,5 +31,6 @@ class ProductSerializer(serializers.ModelSerializer):
     #     return Product.objects.create(**validated_data)
     
 class ReviewSerializer(serializers.ModelSerializer):
-    model = Review
-    fields = ['id', 'name', 'description', 'date', 'product']
+    class Meta:
+        model = Review
+        fields = ['id', 'name', 'description', 'date', 'product']
